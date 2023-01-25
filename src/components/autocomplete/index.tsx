@@ -16,8 +16,9 @@ interface IAutoCompleteState {
     searchInput: string;
     searchEntries: Promise<any>;
     matchSearchEntries: Array<any>;
-    matchSearchTerms: Array<string>;
     isSearching: boolean;
+    selectedMedication?: any;
+    lastSearchedTerms: Array<string>;
 }
 
 class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteState> {
@@ -27,8 +28,9 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
             searchInput: "",
             searchEntries: AutoComplete.getSearchEntries() || [],
             matchSearchEntries: [],
-            matchSearchTerms: [],
-            isSearching: true
+            isSearching: true,
+            selectedMedication: undefined,
+            lastSearchedTerms: []
         }
     }
 
@@ -44,12 +46,11 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
     public onChange = (event: any) => {
         const newState = this.state;
         const target = event && event.currentTarget ? event.currentTarget : event.target;
-        const targetValue = target.type === 'checkbox' ? target.checked : target.value;
-        set(newState, target.name, targetValue);
+        set(newState, target.name, target.value);
         this.setState(newState);
 
         // Filter data by form input
-        this._updateSearchEntries(event.currentTarget.value);
+        this._updateSearchEntries(target.value);
     }
 
     public _updateSearchEntries = (value: string, selectedFilter?: string) => {
@@ -74,8 +75,7 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
         }
 
         this.setState({
-            matchSearchEntries: updateMatchList,
-            matchSearchTerms: Object.keys(updateMatchTermList)
+            matchSearchEntries: updateMatchList
         });
     }
 
@@ -90,11 +90,57 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
         return { found: isViable, matchList: matchTermList };
     }
 
+    public highlightText = (text: string) => {
+        let updateText: any = typeof (text) === "string" ? text.toLowerCase() : `${text}`;
+        let searchText: any = typeof (this.state.searchInput) === "string" ? this.state.searchInput.toLowerCase() : this.state.searchInput;
+        if (updateText && searchText && updateText.indexOf(searchText) !== -1) {
+            const getIndex = updateText.indexOf(searchText);
+            const stitchHtml = updateText.split(searchText);
+
+            if (getIndex === 0) {
+                updateText = (<React.Fragment><mark>{searchText}</mark>{stitchHtml[1]}</React.Fragment>);
+            } else if (stitchHtml[1] === "") {
+                updateText = (<React.Fragment>{stitchHtml[0]}<mark>{searchText}</mark></React.Fragment>);
+            } else {
+                updateText = (<React.Fragment>{stitchHtml[0]}<mark>{searchText}</mark>{stitchHtml[1]}</React.Fragment>);
+            }
+        };
+
+        return updateText;
+    }
+
+    public clearSearchField = () => {
+        this.onChange({
+            currentTarget: {
+                name: "searchInput",
+                value: ""
+            }
+        });
+    }
+
+    public selectSearchResult = (entry: any) => {
+        this.onChange({
+            currentTarget: {
+                name: "searchInput",
+                value: entry.name
+            }
+        });
+
+        this.setState({
+            selectedMedication: entry,
+            matchSearchEntries: [],
+            lastSearchedTerms: this.state.lastSearchedTerms.length > 0 ?
+                [this.state.searchInput, ...this.state.lastSearchedTerms] :
+                [this.state.searchInput]
+        });
+    }
+
     render() {
         let {
             searchInput,
             matchSearchEntries,
-            matchSearchTerms,
+            selectedMedication,
+            lastSearchedTerms
         } = this.state;
 
         return (
@@ -112,16 +158,11 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
                                         <Input
                                             type="text"
                                             name="searchInput"
-                                            id={searchInput}
+                                            value={searchInput}
                                             onChange={(event: any) => this.onChange(event)}
                                             placeholder="Search"
                                         />
-                                        <Button color='link' style={{
-                                            position: "absolute",
-                                            right: "80px",
-                                            zIndex: 10,
-                                        }}>x</Button>
-                                        <Button>Search</Button>
+                                        <Button onClick={this.clearSearchField}>x</Button>
                                     </InputGroup>
                                 </Col>
                             </Row>
@@ -129,51 +170,66 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
 
                             {(searchInput.length > 0) && (
                                 <>
-                                    {/* Suggested Search terms */}
-                                    {(matchSearchTerms.length > 0) && (
-                                        <Row>
-                                            <Col>
-                                                <p className="mt-2 mb-4 mt--1">
-                                                    <small>
-                                                        Related Searches :&nbsp;&nbsp;
-                                                        <Button color="primary" className='m-1'>Search Result 01</Button>
-                                                        <Button color="primary" className='m-1'>Search Result 02</Button>
-                                                        <Button color="primary" className='m-1'>Search Result 03</Button>
-                                                    </small></p>
-                                            </Col>
-                                        </Row>
-                                    )}
 
                                     {/* Returned Search Results */}
-                                    {(matchSearchEntries.length > 0) && (
+                                    {(matchSearchEntries.length > 0) ? (
                                         <Row className='m-0 p-0'>
                                             <Col className='m-0 p-0'>
                                                 <ListGroup>
                                                     {matchSearchEntries.map((entry: any) => {
                                                         return (
-                                                            <ListGroupItem onClick={() => console.log("Click for more info")}>
-                                                                <p>
-                                                                    <small>{entry.pzn}</small><br />
-                                                                    <big>{entry.name}</big><br />
-
-                                                                    <span>Strength: {entry.strengthValue} {entry.strengthUnit}</span><br />
-                                                                    <span>Amount: {entry.amountValue} {entry.amountUnit}</span>
-                                                                </p>
+                                                            <ListGroupItem onClick={() => this.selectSearchResult(entry)}>
+                                                                <small>{this.highlightText(entry.name)}</small>
                                                             </ListGroupItem>
                                                         )
                                                     })}
 
                                                 </ListGroup>
-
-                                                <p className='m-0 p-2'><small>No search results found. Try another search term</small></p>
                                             </Col>
                                         </Row>
-                                    )}
+                                    ) :
+                                        !selectedMedication && (<p className='m-0 p-2'><small>No search results found. Try another search term</small></p>)
+                                    }
                                 </>
                             )}
                         </div>
                     </Col>
                 </Row>
+
+                {/* Last Searched terms */}
+                {(lastSearchedTerms.length > 0) && (
+                    <Row>
+                        <Col className="mt-2 mb-4 mt--1">
+                            <>
+                                <small>Last Searched Term :</small>
+                                {lastSearchedTerms.map((searchTerm: string) => {
+                                    return (
+                                        <Button
+                                            color="primary"
+                                            className="m-1"
+                                            onClick={() => this.onChange({ currentTarget: { name: "searchInput", value: searchTerm } })}
+                                        >{searchTerm}</Button>
+                                    )
+                                })}
+                            </>
+                        </Col>
+                    </Row>
+                )}
+
+                {selectedMedication && (
+                    <Row>
+                        <Col>
+                            <Button className='m-5'>
+                                <small>{selectedMedication.pzn}</small><br />
+                                <big>{selectedMedication.name}</big><br />
+
+                                <span>Strength: {selectedMedication.strengthValue} {selectedMedication.strengthUnit}</span><br />
+                                <span>Amount: {selectedMedication.amountValue} {selectedMedication.amountUnit}</span>
+                            </Button>
+                        </Col>
+                    </Row>
+                )}
+
             </React.Fragment >
         );
     }
