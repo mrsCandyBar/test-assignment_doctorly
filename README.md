@@ -1,5 +1,5 @@
 # test-assignment_doctorly
-Autocomplete widget for medications
+Autocomplete widget for medications.\
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
