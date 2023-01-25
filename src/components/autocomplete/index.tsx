@@ -7,13 +7,14 @@ import {
     ListGroup, ListGroupItem
 } from 'reactstrap';
 import { set } from 'lodash';
+import { medication } from './data';
 
 interface IAutoCompleteProps {
     children?: any;
 }
 interface IAutoCompleteState {
     searchInput: string;
-    searchEntries: Array<any>;
+    searchEntries: Promise<any>;
     matchSearchEntries: Array<any>;
     matchSearchTerms: Array<string>;
     isSearching: boolean;
@@ -24,11 +25,20 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
         super(props);
         this.state = {
             searchInput: "",
-            searchEntries: [],
+            searchEntries: AutoComplete.getSearchEntries() || [],
             matchSearchEntries: [],
             matchSearchTerms: [],
             isSearching: true
         }
+    }
+
+    static getSearchEntries = () => {
+        const randomizeTimeout = Math.random() * 1000;
+        return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(medication);
+            }, randomizeTimeout);
+          });
     }
 
     public onChange = (event: any) => {
@@ -36,7 +46,7 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
         const target = event && event.currentTarget ? event.currentTarget : event.target;
         const targetValue = target.type === 'checkbox' ? target.checked : target.value;
         set(newState, target.name, targetValue);
-        return newState;
+        this.setState(newState);
     }
 
     render() {
@@ -60,7 +70,7 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
                                     <InputGroup>
                                             <Input
                                                 type="text"
-                                                name="search"
+                                                name="searchInput"
                                                 id={searchInput}
                                                 onChange={(event: any) => this.onChange(event)}
                                                 placeholder="Search"
