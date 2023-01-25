@@ -1,25 +1,51 @@
 import React from 'react';
 import {
-    Container, Row, Col,
-    FormGroup, Label, Input,
+    Row, Col,
+    Input,
     InputGroup,
     Button,
     ListGroup, ListGroupItem
 } from 'reactstrap';
+import { set } from 'lodash';
 
 interface IAutoCompleteProps {
     children?: any;
 }
-interface IAutoCompleteState { }
+interface IAutoCompleteState {
+    searchInput: string;
+    searchEntries: Array<any>;
+    matchSearchEntries: Array<any>;
+    matchSearchTerms: Array<string>;
+    isSearching: boolean;
+}
 
 class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteState> {
     constructor(props: IAutoCompleteProps) {
         super(props);
         this.state = {
+            searchInput: "",
+            searchEntries: [],
+            matchSearchEntries: [],
+            matchSearchTerms: [],
+            isSearching: true
         }
     }
 
+    public onChange = (event: any) => {
+        const newState = this.state;
+        const target = event && event.currentTarget ? event.currentTarget : event.target;
+        const targetValue = target.type === 'checkbox' ? target.checked : target.value;
+        set(newState, target.name, targetValue);
+        return newState;
+    }
+
     render() {
+        let {
+            searchInput,
+            matchSearchEntries,
+            matchSearchTerms,
+        } = this.state;
+
         return (
             <React.Fragment>
                 <h1>Autocomplete Widget</h1>
@@ -32,63 +58,63 @@ class AutoComplete extends React.Component<IAutoCompleteProps, IAutoCompleteStat
                             <Row form className='form-row'>
                                 <Col className="mt-3 pl-0">
                                     <InputGroup>
-                                        <Input
-                                            type="text"
-                                            name="search"
-                                            id="searchForMedication"
-                                            placeholder="Search"
-                                        />
-                                        <Button color='link' style={{ background: "#ffffff" }}>x</Button>
+                                            <Input
+                                                type="text"
+                                                name="search"
+                                                id={searchInput}
+                                                onChange={(event: any) => this.onChange(event)}
+                                                placeholder="Search"
+                                            />
+                                            <Button color='link' style={{
+                                                position: "absolute",
+                                                right: "80px",
+                                                zIndex: 10,
+                                            }}>x</Button>
                                         <Button>Search</Button>
                                     </InputGroup>
                                 </Col>
                             </Row>
 
-                            {/* Suggested Search terms */}
-                            <Row>
-                                <Col>
-                                    <p className="mt-2 mb-4 mt--1">
-                                        <small>
-                                            Related Searches :&nbsp;&nbsp;
-                                            <Button color="primary" className='m-1'>Search Result 01</Button>
-                                            <Button color="primary" className='m-1'>Search Result 02</Button>
-                                            <Button color="primary" className='m-1'>Search Result 03</Button>
-                                        </small></p>
-                                </Col>
-                            </Row>
 
-                            {/* Returned Search Results */}
-                            <Row className='m-0 p-0'>
-                                <Col className='m-0 p-0'>
-                                    <p className="p-2 m-0">
-                                        <big>
-                                            <b>Filter entries by:</b>
-                                        </big>
-                                    </p>
+                            {(searchInput.length > 0) && (
+                                <>
+                                    {/* Suggested Search terms */}
+                                    {(matchSearchTerms.length > 0) && (
+                                        <Row>
+                                            <Col>
+                                                <p className="mt-2 mb-4 mt--1">
+                                                    <small>
+                                                        Related Searches :&nbsp;&nbsp;
+                                                        <Button color="primary" className='m-1'>Search Result 01</Button>
+                                                        <Button color="primary" className='m-1'>Search Result 02</Button>
+                                                        <Button color="primary" className='m-1'>Search Result 03</Button>
+                                                    </small></p>
+                                            </Col>
+                                        </Row>
+                                    )}
 
-                                    <Row className="p-2 m-0">
-                                        <Col>
-                                            <Button className='m-1'>strength</Button>
-                                            <Button className='m-1'>name</Button>
-                                            <Button className='m-1'>amount</Button>
-                                        </Col>
-                                    </Row>
+                                    {/* Returned Search Results */}
+                                    {(matchSearchEntries.length > 0) && (
+                                        <Row className='m-0 p-0'>
+                                            <Col className='m-0 p-0'>
+                                                <ListGroup>
+                                                    <ListGroupItem onClick={() => console.log("Click for more info")}>
+                                                        <p>
+                                                            <small>pzn number</small><br />
+                                                            <big>medication name</big><br />
 
-                                    <ListGroup>
-                                        <ListGroupItem onClick={() => console.log("Click for more info")}>
-                                            <p>
-                                                <small>pzn number</small><br />
-                                                <big>medication name</big><br />
+                                                            <span>Strength: 200 unit</span><br />
+                                                            <span>Amount: amountValue amountUnit</span>
+                                                        </p>
+                                                    </ListGroupItem>
+                                                </ListGroup>
 
-                                                <span>Strength: 200 unit</span><br />
-                                                <span>Amount: amountValue amountUnit</span>
-                                            </p>
-                                        </ListGroupItem>
-                                    </ListGroup>
-
-                                    <p className='m-0 p-2'><small>No search results found. Try another search term</small></p>
-                                </Col>
-                            </Row>
+                                                <p className='m-0 p-2'><small>No search results found. Try another search term</small></p>
+                                            </Col>
+                                        </Row>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </Col>
                 </Row>
